@@ -18,9 +18,15 @@ add_executable(lab4
 
 find_package(Threads REQUIRED)
 find_package(LibArchive REQUIRED)
-find_package(Boost REQUIRED COMPONENTS locale)
-include_directories(Boost::locale)
+find_package(Boost REQUIRED system)
+find_package(Boost COMPONENTS system filesystem locale REQUIRED)
+#include_directories(Boost::locale)
 
 target_link_libraries(lab4 ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(lab4 ${LibArchive_LIBRARIES})
-target_link_libraries(lab4 Boost::locale)
+#target_link_libraries(lab4 Boost::locale)
+target_link_libraries(lab4
+        ${Boost_FILESYSTEM_LIBRARY}
+        ${Boost_SYSTEM_LIBRARY}
+        ${Boost_LOCALE_LIBRARY}
+        )

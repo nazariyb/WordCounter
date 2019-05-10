@@ -8,6 +8,7 @@
 #include <archive.h>
 #include <archive_entry.h>
 #include <boost/locale.hpp>
+#include <boost/filesystem.hpp>
 #include <thread>
 #include <math.h>
 #include <mutex>
@@ -29,16 +30,23 @@ inline long long to_us (const D &d)
     return std::chrono::duration_cast<std::chrono::microseconds>(d).count();
 }
 
-bool is_archive (std::string &f)
-{
-    std::vector<std::string> v{".zip", ".tar", ".gz", ".tar.gz", ".7z"};
-    return (std::find(v.begin(), v.end(), f.substr(f.find_last_of('.'))) != v.end());
-}
-
+using StringVector = std::vector<std::string>;
 using Pair = std::pair<std::string, int>;
 std::vector<Pair> wordsVector;
 using WordMap = std::map<std::string, size_t>;
 using Maps = std::vector<WordMap>;
+
+bool is_archive (const std::string& f)
+{
+    StringVector v{".zip", ".tar", ".gz", ".tar.gz", ".7z"};
+    return (std::find(v.begin(), v.end(), f.substr(f.find_last_of('.'))) != v.end());
+}
+
+bool is_txt (const std::string& f)
+{
+    StringVector s {".txt"};
+    return (std::find(s.begin(), s.end(), f.substr(f.find_last_of('.'))) != s.end());
+}
 
 void write_file (const std::string &filename, const std::vector<Pair> &words)
 {
@@ -51,7 +59,7 @@ void write_file (const std::string &filename, const std::vector<Pair> &words)
     outfile.close();
 }
 
-void process_data (const std::vector<std::string> &stream_vector, size_t start_pos, size_t end_pos,
+void process_data (const StringVector &stream_vector, size_t start_pos, size_t end_pos,
                    WordMap &wordsMap, std::mutex &mt)
 {
     WordMap wMap;
@@ -79,6 +87,22 @@ enum Error
     OPEN_FILE_ERROR = 2, READ_FILE_ERROR = 3, WRITE_FILE_ERROR = 4, READ_ARCHIVE_ERROR = 5
     };
 
+StringVector find_files_to_index(std::string& directory_name)
+{
+    StringVector sv;
+    for ( boost::filesystem::recursive_directory_iterator end, dir(directory_name);
+          dir != end; ++dir ) {
+          std::string pathname{(*dir).path().string()};
+//        std::cout << "|" << pathname << "|" << std::endl;
+//          if (is_txt(pathname)) {
+//              sv.push_back(pathname);
+              std::cout << pathname << std::endl;
+//          }
+//         std::cout << *dir << "\n";  // full path
+//        std::cout << dir->path().filename() << "\n"; // just last bit
+    }
+}
+
 int main (int argc, char **argv)
 {
     // set name of configuration file
@@ -105,6 +129,9 @@ int main (int argc, char **argv)
         std::cerr << "Error: " << ex.what() << std::endl;
         return READ_FILE_ERROR;
     }
+
+    find_files_to_index(conf["infile"]);
+    return 0;
 
     std::stringstream words_stream;
 
@@ -172,7 +199,7 @@ int main (int argc, char **argv)
     std::wcout.imbue(loc);
     std::ios_base::sync_with_stdio(false);
 
-    std::vector<std::string> stream_vector;
+    StringVector stream_vector;
 
     std::string tmp;
     while (getline(words_stream, tmp)) { stream_vector.push_back(tmp); }
