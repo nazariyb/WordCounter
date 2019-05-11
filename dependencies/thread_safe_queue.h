@@ -24,7 +24,8 @@ public:
 
     void double_push(T first, T second)
     {
-
+        push(first);
+        push(first);
     }
 
     void wait_and_pop (T &value)

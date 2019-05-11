@@ -9,12 +9,14 @@
 #include <archive_entry.h>
 #include <boost/locale.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 #include <thread>
 #include <cmath>
 #include <mutex>
 #include "read.h"
 
 #include "conf_reader.h"
+#include "../dependencies/thread_safe_queue.h"
 
 inline std::chrono::steady_clock::time_point get_current_time_fenced ()
 {
@@ -31,8 +33,6 @@ inline long long to_us (const D &d)
     return std::chrono::duration_cast<std::chrono::microseconds>(d).count();
 }
 
-
-
 void write_file (const std::string &filename, const std::vector<Pair> &words)
 {
     std::ofstream outfile(filename);
@@ -42,6 +42,79 @@ void write_file (const std::string &filename, const std::vector<Pair> &words)
         outfile << " :    " << word.second << std::endl;
     }
     outfile.close();
+}
+
+std::map<std::string, StringVector> find_files_to_index (std::string &directory_name)
+{
+    WordMap wMap;
+    // iterate through text
+    StringVector txt, zip;
+    for (boost::filesystem::recursive_directory_iterator end, dir(directory_name);
+         dir != end; ++dir) {
+        std::string pathname{(*dir).path().string()};
+
+        if (boost::iequals(boost::filesystem::extension(*dir), ".txt"))
+            txt.push_back(pathname);
+        if (boost::iequals(boost::filesystem::extension(*dir), ".zip"))
+            zip.push_back(pathname);
+    }
+    std::map<std::string, StringVector> resultMap;
+    resultMap["txt"] = txt;
+    resultMap["zip"] = zip;
+    return resultMap;
+}
+
+void index_text (thread_safe_queue<std::stringstream> stream_queue,
+                 thread_safe_queue<WordMap> maps_queue)
+{
+    while (true) {
+
+        auto file_stream = stream_queue.try_pop();
+
+        WordMap wMap;
+        // iterate through text
+        std::string temp;
+        while (getline(*file_stream, temp)) {
+
+            // normalize encoding
+            std::string text = boost::locale::normalize(temp);
+
+            // bound text by words
+            using namespace boost::locale::boundary;
+            ssegment_index map(word, text.begin(), text.end());
+            map.rule(word_any);
+
+            // convert them to fold case and add to the vector
+            for (ssegment_index::iterator it = map.begin(), e = map.end(); it != e; ++it) {
+                ++wMap[boost::locale::fold_case(it->str())];
+            }
+        }
+        maps_queue.push(wMap);
+        if (wMap.empty())
+            return;
+    }
+}
+
+void merge_two_maps (thread_safe_queue<WordMap> maps_queue)
+{
+    while (true) {
+        auto map_pair = maps_queue.double_pop();
+        if (map_pair.first.empty() || map_pair.second.empty()) {
+            if (maps_queue.size() == 0) {
+                maps_queue.double_push(map_pair.first, map_pair.second);
+                return;
+            } else {
+                maps_queue.double_push(map_pair.first, map_pair.second);
+                continue;
+            }
+        }
+
+        WordMap merged_map{map_pair.first};
+        for (auto &word: map_pair.second) {
+            merged_map[word.first] += word.second;
+        }
+        maps_queue.push(merged_map);
+    }
 }
 
 void process_data (const StringVector &stream_vector, size_t start_pos, size_t end_pos,
@@ -68,19 +141,19 @@ void process_data (const StringVector &stream_vector, size_t start_pos, size_t e
 }
 
 
-StringVector find_files_to_index(std::string& directory_name)
+StringVector find_files_to_index (std::string &directory_name)
 {
     StringVector sv;
-    for ( boost::filesystem::recursive_directory_iterator end, dir(directory_name);
-          dir != end; ++dir ) {
-          std::string pathname{(*dir).path().string()};
-//        std::cout << "|" << pathname << "|" << std::endl;
-//          if (is_txt(pathname)) {
-//              sv.push_back(pathname);
-              std::cout << pathname << std::endl;
-//          }
-//         std::cout << *dir << "\n";  // full path
-//        std::cout << dir->path().filename() << "\n"; // just last bit
+    for (boost::filesystem::recursive_directory_iterator end, dir(directory_name);
+         dir != end; ++dir) {
+        std::string pathname{(*dir).path().string()};
+        //        std::cout << "|" << pathname << "|" << std::endl;
+        //          if (is_txt(pathname)) {
+        //              sv.push_back(pathname);
+        std::cout << pathname << std::endl;
+        //          }
+        //         std::cout << *dir << "\n";  // full path
+        //        std::cout << dir->path().filename() << "\n"; // just last bit
     }
 }
 
