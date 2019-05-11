@@ -2,8 +2,8 @@
 
 #include "thread_pool.h"
 
-extern thread_local work_stealing_queue *local_work_queue;
-extern thread_local unsigned my_index;
+//extern thread_local work_stealing_queue *local_work_queue;
+//extern thread_local unsigned my_index;
 
 
 void thread_pool::worker_thread (unsigned my_index_)

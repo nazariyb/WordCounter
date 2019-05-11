@@ -22,6 +22,11 @@ public:
         data_cond.notify_one();
     }
 
+    void double_push(T first, T second)
+    {
+
+    }
+
     void wait_and_pop (T &value)
     {
         std::unique_lock<std::mutex> lk(mut);
@@ -59,6 +64,20 @@ public:
                 std::make_shared<T>(std::move(data_queue.front())));
         data_queue.pop();
         return res;
+    }
+
+    std::pair<T, T> double_pop()
+    {
+
+        auto first = wait_and_pop().get();
+        auto second = wait_and_pop().get();
+
+        return std::make_pair(*first, *second);
+    }
+
+    unsigned size()
+    {
+        return 2;
     }
 
     bool empty () const
