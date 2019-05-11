@@ -11,10 +11,13 @@
 #include "read.h"
 
 struct Reader{
-    std::stringstream read_txt(std::string & address);
-    std::stringstream read_zip(std::string & address);
-    bool is_txt(const std::string& f);
-    bool is_archive(const std::string& f);
+    static std::stringstream &read_txt (std::string &address);
+
+    static std::stringstream &read_zip (std::string &address);
+
+    static bool is_txt (const std::string &f);
+
+    static bool is_archive (const std::string &f);
 
 };
 

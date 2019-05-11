@@ -23,14 +23,16 @@ bool Reader::is_txt (const std::string& f)
     return (std::find(s.begin(), s.end(), f.substr(f.find_last_of('.'))) != s.end());
 }
 
-std::stringstream Reader::read_txt(std::string & address){
+std::stringstream &Reader::read_txt (std::string &address)
+{
     std::ifstream f(address);
     std::stringstream chunk;
     chunk << f.rdbuf();
     return chunk;
 }
 
-std::stringstream Reader::read_zip(std::string & address){
+std::stringstream &Reader::read_zip (std::string &address)
+{
     std::stringstream words_stream;
 
     //if file is archive open it and read content of all its files

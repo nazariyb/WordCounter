@@ -170,18 +170,17 @@ int main (int argc, char **argv)
     }
 
     thread_safe_queue<std::stringstream> read_queue{};
-    Reader read{};
 
 
     auto files_to_index = find_files_to_index(conf["infile"]);
     for (auto & filepath: files_to_index["txt"]){
-        auto ss = read.read_txt(filepath);
-        read_queue.push(ss);
+        auto &ss = Reader::read_txt(filepath);
+        read_queue.push(std::move(ss));
 
     }
     for (auto & filepath: files_to_index["zip"]){
-        auto ss = read.read_txt(filepath);
-        read_queue.push(ss);
+        auto &ss = Reader::read_txt(filepath);
+        read_queue.push(std::move(ss));
     }
 
 
