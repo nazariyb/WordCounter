@@ -8,20 +8,13 @@
 #include <sstream>
 #include <vector>
 #include <map>
-enum Error
-{
-    OPEN_FILE_ERROR = 2, READ_FILE_ERROR = 3, WRITE_FILE_ERROR = 4, READ_ARCHIVE_ERROR = 5
-};
+#include "read.h"
 
-using StringVector = std::vector<std::string>;
-using Pair = std::pair<std::string, int>;
-std::vector<Pair> wordsVector;
-using WordMap = std::map<std::string, size_t>;
-using Maps = std::vector<WordMap>;
-
-class read {
+struct Reader{
     std::stringstream read_txt(std::string & address);
     std::stringstream read_zip(std::string & address);
+    bool is_txt(const std::string& f);
+    bool is_archive(const std::string& f);
 
 };
 

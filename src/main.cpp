@@ -14,7 +14,7 @@
 #include <cmath>
 #include <mutex>
 #include "read.h"
-
+#include "main_config.h"
 #include "conf_reader.h"
 #include "../dependencies/thread_safe_queue.h"
 
@@ -141,21 +141,6 @@ void process_data (const StringVector &stream_vector, size_t start_pos, size_t e
 }
 
 
-StringVector find_files_to_index (std::string &directory_name)
-{
-    StringVector sv;
-    for (boost::filesystem::recursive_directory_iterator end, dir(directory_name);
-         dir != end; ++dir) {
-        std::string pathname{(*dir).path().string()};
-        //        std::cout << "|" << pathname << "|" << std::endl;
-        //          if (is_txt(pathname)) {
-        //              sv.push_back(pathname);
-        std::cout << pathname << std::endl;
-        //          }
-        //         std::cout << *dir << "\n";  // full path
-        //        std::cout << dir->path().filename() << "\n"; // just last bit
-    }
-}
 
 int main (int argc, char **argv)
 {
@@ -184,66 +169,22 @@ int main (int argc, char **argv)
         return READ_FILE_ERROR;
     }
 
-    find_files_to_index(conf["infile"]);
+    thread_safe_queue<std::stringstream> read_queue{};
+    Reader read{};
 
-    std::stringstream words_stream;
 
-    auto start_reading = get_current_time_fenced();
-    // if file is archive open it and read content of all its files
-    if (is_archive(conf["infile"])) {
-        struct archive *a;
-        struct archive_entry *entry;
-        int r;
+    auto files_to_index = find_files_to_index(conf["infile"]);
+    for (auto & filepath: files_to_index["txt"]){
+        auto ss = read.read_txt(filepath);
+        read_queue.push(ss);
 
-        // open archive
-        std::cout << "Opening " << conf["infile"] << std::endl;
-        a = archive_read_new();
-        archive_read_support_filter_all(a);
-        archive_read_support_format_all(a);
-        r = archive_read_open_filename(a, conf["infile"].c_str(), 10240);
-        if (r != ARCHIVE_OK) {
-            std::cerr << "Error while opening archive.\n"
-                         "Check filename / path to file / whether it is not corrupted: "
-                      << conf["infile"]
-                      << std::endl;
-            return READ_ARCHIVE_ERROR;
-        }
-
-        // get entries of archive
-        while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
-            std::cout << "Reading " << archive_entry_pathname(entry) << std::endl;
-            size_t size;
-            auto *buff = (char *) malloc(sizeof(entry));
-            for (;;) {
-                size = archive_read_data(a, buff, sizeof(entry));
-                if (size == 0) { break; }
-                for (size_t i = 0; i < size; ++i) { words_stream << buff[i]; }
-            }
-            free(buff);
-            archive_read_data_skip(a);
-        }
-        r = archive_read_free(a);
-        if (r != ARCHIVE_OK) {
-            std::cerr << "Error while closing archive.\n"
-                         "Try to finish work..."
-                      << std::endl;
-        }
-    } else {
-        // otherwise file's type is text document, just read it
-        std::cout << "Reading " << conf["infile"] << std::endl;
-        std::ifstream infile(conf["infile"]);
-        if (!infile.is_open()) {
-            std::cerr << "Error while opening data file.\n"
-                         "Check filename / path to file / whether it is not corrupted: "
-                      << conf["infile"]
-                      << std::endl;
-            return OPEN_FILE_ERROR;
-        }
-        words_stream << infile.rdbuf();
-        infile.close();
     }
-    auto end_reading = get_current_time_fenced();
-    auto time_reading = to_us(end_reading - start_reading);
+    for (auto & filepath: files_to_index["zip"]){
+        auto ss = read.read_txt(filepath);
+        read_queue.push(ss);
+    }
+
+
 
     // Create system default locale
     boost::locale::generator gen;
@@ -347,14 +288,6 @@ int main (int argc, char **argv)
                   << std::endl;
         return WRITE_FILE_ERROR;
     }
-    auto end_saving = get_current_time_fenced();
-    auto time_saving = to_us(end_saving - start_saving);
-
-    std::cout << "Loading: " << time_reading << std::endl;
-    std::cout << "Processing: " << time_processing << std::endl;
-    std::cout << "Sorting: " << time_sorting << std::endl;
-    std::cout << "Saving: " << time_saving << std::endl;
-    std::cout << "Total time: " << time_reading + time_processing + time_sorting + time_saving << std::endl;
 
     return 0;
 }

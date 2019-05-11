@@ -8,32 +8,33 @@
 #include <algorithm>
 #include <archive.h>
 #include <archive_entry.h>
+#include "main_config.h"
 
 
-bool is_archive (const std::string& f)
+bool Reader::is_archive (const std::string& f)
 {
     StringVector v{".zip", ".tar", ".gz", ".tar.gz", ".7z"};
     return (std::find(v.begin(), v.end(), f.substr(f.find_last_of('.'))) != v.end());
 }
 
-bool is_txt (const std::string& f)
+bool Reader::is_txt (const std::string& f)
 {
     StringVector s {".txt"};
     return (std::find(s.begin(), s.end(), f.substr(f.find_last_of('.'))) != s.end());
 }
 
-std::stringstream read::read_txt(std::string & address){
+std::stringstream Reader::read_txt(std::string & address){
     std::ifstream f(address);
     std::stringstream chunk;
     chunk << f.rdbuf();
     return chunk;
 }
 
-std::stringstream read::read_zip(std::string & address){
+std::stringstream Reader::read_zip(std::string & address){
     std::stringstream words_stream;
 
     //if file is archive open it and read content of all its files
-    if (is_archive(address)) {
+    if (Reader::is_archive(address)) {
         struct archive *a;
         struct archive_entry *entry;
         int r;
