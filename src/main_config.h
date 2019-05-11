@@ -1,7 +1,3 @@
-//
-// Created by danylo.kolinko on 5/11/19.
-//
-
 #ifndef LAB4_MAIN_CONFIG_H
 #define LAB4_MAIN_CONFIG_H
 
@@ -16,7 +12,6 @@ enum Error
 
 using StringVector = std::vector<std::string>;
 using Pair = std::pair<std::string, int>;
-std::vector<Pair> wordsVector;
 using WordMap = std::map<std::string, size_t>;
 using Maps = std::vector<WordMap>;
 

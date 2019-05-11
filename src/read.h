@@ -1,7 +1,3 @@
-//
-// Created by danylo.kolinko on 5/11/19.
-//
-
 #ifndef LAB4_READ_H
 #define LAB4_READ_H
 
@@ -11,9 +7,9 @@
 #include "read.h"
 
 struct Reader{
-    static std::stringstream &read_txt (std::string &address);
+    static void read_txt (std::string &address, std::stringstream &ss);
 
-    static std::stringstream &read_archive (std::string &address);
+    static void read_archive (std::string &address, std::stringstream &ss);
 
     static bool is_txt (const std::string &f);
 

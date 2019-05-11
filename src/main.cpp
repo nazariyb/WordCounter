@@ -11,15 +11,20 @@
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 #include <thread>
+#include <functional>
+
 #include <cmath>
 #include <mutex>
 #include "read.h"
 #include "main_config.h"
 #include "conf_reader.h"
 #include "../dependencies/thread_safe_queue.h"
+#include "../dependencies/thread_pool.h"
+
 #include "map_manipulation.h"
 
-inline std::chrono::steady_clock::time_point get_current_time_fenced() {
+inline std::chrono::steady_clock::time_point get_current_time_fenced ()
+{
     static_assert(std::chrono::steady_clock::is_steady, "Timer should be steady (monotonic).");
     std::atomic_thread_fence(std::memory_order_seq_cst);
     auto res_time = std::chrono::steady_clock::now();
@@ -28,12 +33,14 @@ inline std::chrono::steady_clock::time_point get_current_time_fenced() {
 }
 
 template<class D>
-inline long long to_us(const D &d) {
+inline long long to_us (const D &d)
+{
     return std::chrono::duration_cast<std::chrono::microseconds>(d).count();
 }
 
 
-std::map<std::string, StringVector> find_files_to_index(std::string &directory_name) {
+std::map<std::string, StringVector> find_files_to_index (std::string &directory_name)
+{
     WordMap wMap;
     // iterate through text
     StringVector txt, zip;
@@ -41,7 +48,7 @@ std::map<std::string, StringVector> find_files_to_index(std::string &directory_n
          dir != end; ++dir) {
         std::string pathname{(*dir).path().string()};
 
-        if (boost::iequals(boost::filesystem::extension(*dir), ".txt"))
+        if (Reader::is_txt(pathname))
             txt.push_back(pathname);
         if (boost::iequals(boost::filesystem::extension(*dir), ".zip"))
             zip.push_back(pathname);
@@ -52,8 +59,9 @@ std::map<std::string, StringVector> find_files_to_index(std::string &directory_n
     return resultMap;
 }
 
-void index_text(thread_safe_queue<std::stringstream> &stream_queue,
-                thread_safe_queue<WordMap> &maps_queue) {
+void index_text (thread_safe_queue<std::stringstream> &stream_queue,
+                 thread_safe_queue<WordMap> &maps_queue)
+{
     while (true) {
 
         auto file_stream = stream_queue.try_pop();
@@ -83,10 +91,9 @@ void index_text(thread_safe_queue<std::stringstream> &stream_queue,
 }
 
 
-}
-
-void process_data(const StringVector &stream_vector, size_t start_pos, size_t end_pos,
-                  WordMap &wordsMap, std::mutex &mt) {
+void process_data (const StringVector &stream_vector, size_t start_pos, size_t end_pos,
+                   WordMap &wordsMap, std::mutex &mt)
+{
     WordMap wMap;
     // iterate through text
     for (; start_pos < end_pos; ++start_pos) {
@@ -116,6 +123,8 @@ int main(int argc, char **argv) {
     std::wcout.imbue(loc);
     std::ios_base::sync_with_stdio(false);
 
+    std::vector<Pair> wordsVector;
+
     // set name of configuration file
     std::string config_file("../config.dat");
     if (argc >= 2) { config_file = argv[1]; }
@@ -141,48 +150,54 @@ int main(int argc, char **argv) {
         return READ_FILE_ERROR;
     }
 
-    thread_safe_queue<std::stringstream> read_queue{};
-
+    thread_safe_queue<std::stringstream> stream_queue{};
+    thread_safe_queue<WordMap> maps_queue{};
+    thread_pool pool;
 
     auto files_to_index = find_files_to_index(conf["infile"]);
+    std::stringstream ss;
+
     for (auto &filepath: files_to_index["txt"]) {
         try {
-            auto &ss = Reader::read_txt(filepath);
-            read_queue.push(std::move(ss));
+            Reader::read_txt(filepath, ss);
+            stream_queue.push(std::move(ss));
+            auto ff = [&stream_queue, &maps_queue] () { return index_text(stream_queue, maps_queue); };
+
+            pool.submit(ff);
+
         }
         catch (std::exception &e) {
             std::cerr << e.what() << std::endl;
             continue;
 
+
         }
-    }
 
 
+        std::stringstream ss;
 
-    for (auto &filepath: files_to_index["zip"]) {
-        try {
-            auto &ss = Reader::read_archive(filepath);
-            read_queue.push(std::move(ss));
+        for (auto &filepath: files_to_index["zip"]) {
+            try {
+                Reader::read_archive(filepath, ss);
+                stream_queue.push(std::move(ss));
+            }
+            catch (std::exception &e) {
+                std::cerr << e.what() << std::endl;
+                continue;
+            }
         }
-        catch (std::exception &e) {
-            std::cerr << e.what() << std::endl;
-            continue;
-        }
-    }
-
-
 
 
         std::cout << "Sorting by numbers..." << std::endl;
         std::vector<Pair> sorted_words;
         std::copy(wordsVector.begin(), wordsVector.end(), std::back_inserter(sorted_words));
-        std::sort(wordsVector.begin(), wordsVector.end(), [](Pair a, Pair b) { return a.second > b.second; });
+        std::sort(wordsVector.begin(), wordsVector.end(), [] (Pair a, Pair b) { return a.second > b.second; });
 
         write_results(conf["out_by_n"], sorted_words);
 
         std::cout << "Sorting by words..." << std::endl;
         std::copy(wordsVector.begin(), wordsVector.end(), std::back_inserter(sorted_words));
-        std::sort(wordsVector.begin(), wordsVector.end(), [](Pair a, Pair b) {
+        std::sort(wordsVector.begin(), wordsVector.end(), [] (Pair a, Pair b) {
             return boost::locale::comparator<char, boost::locale::collator_base::secondary>().operator()(a.first,
                                                                                                          b.first);
         });
@@ -192,4 +207,6 @@ int main(int argc, char **argv) {
 
 
         return 0;
+
     }
+}

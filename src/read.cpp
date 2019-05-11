@@ -1,39 +1,37 @@
-//
-// Created by danylo.kolinko on 5/11/19.
-//
-
 #include <fstream>
 #include <iostream>
 #include "read.h"
 #include <algorithm>
 #include <archive.h>
 #include <archive_entry.h>
+#include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 #include "main_config.h"
 
 
-bool Reader::is_archive (const std::string& f)
+bool Reader::is_archive (const std::string &filename)
 {
-    StringVector v{".zip", ".tar", ".gz", ".tar.gz", ".7z"};
-    return (std::find(v.begin(), v.end(), f.substr(f.find_last_of('.'))) != v.end());
+    StringVector archive_exts{".zip", ".tar", ".gz", ".tar.gz", ".7z"};
+    for (auto &ext: archive_exts) {
+        if (boost::iequals(boost::filesystem::extension(filename), ext))
+            return true;
+    }
+    return false;
 }
 
-bool Reader::is_txt (const std::string& f)
+bool Reader::is_txt (const std::string &filename)
 {
-    StringVector s {".txt"};
-    return (std::find(s.begin(), s.end(), f.substr(f.find_last_of('.'))) != s.end());
+    return boost::iequals(boost::filesystem::extension(filename), ".txt");
 }
 
-std::stringstream &Reader::read_txt (std::string &address)
+void Reader::read_txt (std::string &address, std::stringstream &ss)
 {
     std::ifstream f(address);
-    std::stringstream chunk;
-    chunk << f.rdbuf();
-    return chunk;
+    ss << f.rdbuf();
 }
 
-std::stringstream &Reader::read_archive (std::string &address)
+void Reader::read_archive (std::string &address, std::stringstream &ss)
 {
-    std::stringstream words_stream;
 
     //if file is archive open it and read content of all its files
     if (Reader::is_archive(address)) {
@@ -61,7 +59,7 @@ std::stringstream &Reader::read_archive (std::string &address)
                 size = archive_read_data(a, buff, sizeof(entry));
                 if (size == 0) { break; }
 
-                for (size_t i = 0; i < size; ++i) { words_stream << buff[i]; }
+                for (size_t i = 0; i < size; ++i) { ss << buff[i]; }
             }
             delete[] buff;
             archive_read_data_skip(a);
@@ -73,7 +71,6 @@ std::stringstream &Reader::read_archive (std::string &address)
                       << std::endl;
             throw std::invalid_argument("Error while closing archive");
         }
-        return words_stream;
     }
 
 }
