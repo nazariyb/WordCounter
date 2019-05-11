@@ -64,8 +64,8 @@ std::map<std::string, StringVector> find_files_to_index (std::string &directory_
     return resultMap;
 }
 
-void index_text (thread_safe_queue<std::stringstream> stream_queue,
-                 thread_safe_queue<WordMap> maps_queue)
+void index_text (thread_safe_queue<std::stringstream> &stream_queue,
+                 thread_safe_queue<WordMap> &maps_queue)
 {
     while (true) {
 
@@ -195,57 +195,8 @@ int main (int argc, char **argv)
 
     StringVector stream_vector;
 
-    std::string tmp;
-    while (getline(words_stream, tmp)) { stream_vector.push_back(tmp); }
 
-    double threads_number{std::stod(conf["threads"])};
-    if (argc == 3) { threads_number = std::stod(argv[2]); }
-    std::vector<std::thread> threads;
-
-    std::cout << "Processing data..." << std::endl;
-    auto start_processing = get_current_time_fenced();
-    Maps maps;
-    size_t step{(size_t) (std::ceil(stream_vector.size() / threads_number))};
-    size_t start_pos{0};
-    size_t end_pos{0};
-    std::mutex mt;
-
-    for (int i = 0; i < threads_number; ++i) {
-        auto *wordMap = new WordMap();
-        maps.push_back(*wordMap);
-    }
-
-    // create and run threads
-    for (int i = 0; i < threads_number - 1; ++i) {
-        start_pos = end_pos;
-        end_pos = start_pos + step;
-        threads.emplace_back(process_data, std::ref(stream_vector), start_pos, end_pos, std::ref(maps[i]),
-                             std::ref(mt));
-    }
-    // when number of threads is 1, program works like sequential one
-    start_pos = end_pos;
-    end_pos = stream_vector.size();
-    threads.emplace_back(process_data, std::ref(stream_vector), start_pos, end_pos, std::ref(maps[maps.size() - 1]),
-                         std::ref(mt));
-
-    for (auto &thread : threads) { thread.join(); }
-
-    // merge results
-    WordMap wordsMap;
-    for (const auto &wMap: maps) {
-        for (auto &word : wMap) {
-            wordsMap[word.first] += word.second;
-        }
-    }
-    auto end_processing = get_current_time_fenced();
-    auto time_processing = to_us(end_processing - start_processing);
-
-    // save data from map to vector
-    for (auto &words_number : wordsMap) {
-        wordsVector.emplace_back(words_number.first, words_number.second);
-    }
-
-    auto start_sorting = get_current_time_fenced();
+    //    auto start_sorting = get_current_time_fenced();
     // sort by numbers
     std::cout << "Sorting by numbers..." << std::endl;
     std::vector<Pair> sorted_numbers;
@@ -261,13 +212,11 @@ int main (int argc, char **argv)
                   return boost::locale::comparator<char, boost::locale::collator_base::secondary>().operator()(a.first,
                                                                                                                b.first);
               });
-    auto end_sorting = get_current_time_fenced();
-    auto time_sorting = to_us(end_sorting - start_sorting);
+    //    auto end_sorting = get_current_time_fenced();
+    //    auto time_sorting = to_us(end_sorting - start_sorting);
 
     // write results to files
     std::cout << "Save results..." << std::endl;
-
-    auto start_saving = get_current_time_fenced();
 
     try {
         write_file(conf["out_by_n"], sorted_numbers);
