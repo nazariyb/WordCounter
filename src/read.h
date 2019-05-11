@@ -13,7 +13,7 @@
 struct Reader{
     static std::stringstream &read_txt (std::string &address);
 
-    static std::stringstream &read_zip (std::string &address);
+    static std::stringstream &read_archive (std::string &address);
 
     static bool is_txt (const std::string &f);
 

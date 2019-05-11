@@ -4,6 +4,11 @@
 
 #ifndef LAB4_MAIN_CONFIG_H
 #define LAB4_MAIN_CONFIG_H
+
+#include <map>
+#include <string>
+#include <vector>
+
 enum Error
 {
     OPEN_FILE_ERROR = 2, READ_FILE_ERROR = 3, WRITE_FILE_ERROR = 4, READ_ARCHIVE_ERROR = 5

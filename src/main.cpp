@@ -17,9 +17,9 @@
 #include "main_config.h"
 #include "conf_reader.h"
 #include "../dependencies/thread_safe_queue.h"
+#include "map_manipulation.h"
 
-inline std::chrono::steady_clock::time_point get_current_time_fenced ()
-{
+inline std::chrono::steady_clock::time_point get_current_time_fenced() {
     static_assert(std::chrono::steady_clock::is_steady, "Timer should be steady (monotonic).");
     std::atomic_thread_fence(std::memory_order_seq_cst);
     auto res_time = std::chrono::steady_clock::now();
@@ -28,24 +28,12 @@ inline std::chrono::steady_clock::time_point get_current_time_fenced ()
 }
 
 template<class D>
-inline long long to_us (const D &d)
-{
+inline long long to_us(const D &d) {
     return std::chrono::duration_cast<std::chrono::microseconds>(d).count();
 }
 
-void write_file (const std::string &filename, const std::vector<Pair> &words)
-{
-    std::ofstream outfile(filename);
-    for (auto &word : words) {
-        outfile << word.first;
-        outfile.width(20 - word.first.length());
-        outfile << " :    " << word.second << std::endl;
-    }
-    outfile.close();
-}
 
-std::map<std::string, StringVector> find_files_to_index (std::string &directory_name)
-{
+std::map<std::string, StringVector> find_files_to_index(std::string &directory_name) {
     WordMap wMap;
     // iterate through text
     StringVector txt, zip;
@@ -64,9 +52,8 @@ std::map<std::string, StringVector> find_files_to_index (std::string &directory_
     return resultMap;
 }
 
-void index_text (thread_safe_queue<std::stringstream> &stream_queue,
-                 thread_safe_queue<WordMap> &maps_queue)
-{
+void index_text(thread_safe_queue<std::stringstream> &stream_queue,
+                thread_safe_queue<WordMap> &maps_queue) {
     while (true) {
 
         auto file_stream = stream_queue.try_pop();
@@ -95,31 +82,11 @@ void index_text (thread_safe_queue<std::stringstream> &stream_queue,
     }
 }
 
-void merge_two_maps (thread_safe_queue<WordMap> maps_queue)
-{
-    while (true) {
-        auto map_pair = maps_queue.double_pop();
-        if (map_pair.first.empty() || map_pair.second.empty()) {
-            if (maps_queue.size() == 0) {
-                maps_queue.double_push(map_pair.first, map_pair.second);
-                return;
-            } else {
-                maps_queue.double_push(map_pair.first, map_pair.second);
-                continue;
-            }
-        }
 
-        WordMap merged_map{map_pair.first};
-        for (auto &word: map_pair.second) {
-            merged_map[word.first] += word.second;
-        }
-        maps_queue.push(merged_map);
-    }
 }
 
-void process_data (const StringVector &stream_vector, size_t start_pos, size_t end_pos,
-                   WordMap &wordsMap, std::mutex &mt)
-{
+void process_data(const StringVector &stream_vector, size_t start_pos, size_t end_pos,
+                  WordMap &wordsMap, std::mutex &mt) {
     WordMap wMap;
     // iterate through text
     for (; start_pos < end_pos; ++start_pos) {
@@ -141,9 +108,14 @@ void process_data (const StringVector &stream_vector, size_t start_pos, size_t e
 }
 
 
+int main(int argc, char **argv) {
+    // Create system default locale
+    boost::locale::generator gen;
+    std::locale loc = gen("");
+    std::locale::global(loc);
+    std::wcout.imbue(loc);
+    std::ios_base::sync_with_stdio(false);
 
-int main (int argc, char **argv)
-{
     // set name of configuration file
     std::string config_file("../config.dat");
     if (argc >= 2) { config_file = argv[1]; }
@@ -173,69 +145,51 @@ int main (int argc, char **argv)
 
 
     auto files_to_index = find_files_to_index(conf["infile"]);
-    for (auto & filepath: files_to_index["txt"]){
-        auto &ss = Reader::read_txt(filepath);
-        read_queue.push(std::move(ss));
+    for (auto &filepath: files_to_index["txt"]) {
+        try {
+            auto &ss = Reader::read_txt(filepath);
+            read_queue.push(std::move(ss));
+        }
+        catch (std::exception &e) {
+            std::cerr << e.what() << std::endl;
+            continue;
 
-    }
-    for (auto & filepath: files_to_index["zip"]){
-        auto &ss = Reader::read_txt(filepath);
-        read_queue.push(std::move(ss));
-    }
-
-
-
-    // Create system default locale
-    boost::locale::generator gen;
-    std::locale loc = gen("");
-    std::locale::global(loc);
-    std::wcout.imbue(loc);
-    std::ios_base::sync_with_stdio(false);
-
-    StringVector stream_vector;
-
-
-    //    auto start_sorting = get_current_time_fenced();
-    // sort by numbers
-    std::cout << "Sorting by numbers..." << std::endl;
-    std::vector<Pair> sorted_numbers;
-    std::copy(wordsVector.begin(), wordsVector.end(), std::back_inserter(sorted_numbers));
-    std::sort(sorted_numbers.begin(), sorted_numbers.end(), [] (Pair a, Pair b) { return a.second > b.second; });
-
-    // sort by words
-    std::cout << "Sorting by words..." << std::endl;
-    std::vector<Pair> sorted_words;
-    std::copy(wordsVector.begin(), wordsVector.end(), std::back_inserter(sorted_words));
-    std::sort(sorted_words.begin(), sorted_words.end(),
-              [] (Pair a, Pair b) {
-                  return boost::locale::comparator<char, boost::locale::collator_base::secondary>().operator()(a.first,
-                                                                                                               b.first);
-              });
-    //    auto end_sorting = get_current_time_fenced();
-    //    auto time_sorting = to_us(end_sorting - start_sorting);
-
-    // write results to files
-    std::cout << "Save results..." << std::endl;
-
-    try {
-        write_file(conf["out_by_n"], sorted_numbers);
-    } catch (std::exception &ex) {
-        std::cerr << "Error while saving results to "
-                  << conf["out_by_n"]
-                  << ". Try to complete work..."
-                  << std::endl;
-        return WRITE_FILE_ERROR;
+        }
     }
 
-    try {
-        write_file(conf["out_by_a"], sorted_words);
-    } catch (std::exception &ex) {
-        std::cerr << "Error while saving results to "
-                  << conf["out_by_a"]
-                  << ". Try to complete work..."
-                  << std::endl;
-        return WRITE_FILE_ERROR;
+
+
+    for (auto &filepath: files_to_index["zip"]) {
+        try {
+            auto &ss = Reader::read_archive(filepath);
+            read_queue.push(std::move(ss));
+        }
+        catch (std::exception &e) {
+            std::cerr << e.what() << std::endl;
+            continue;
+        }
     }
 
-    return 0;
-}
+
+
+
+        std::cout << "Sorting by numbers..." << std::endl;
+        std::vector<Pair> sorted_words;
+        std::copy(wordsVector.begin(), wordsVector.end(), std::back_inserter(sorted_words));
+        std::sort(wordsVector.begin(), wordsVector.end(), [](Pair a, Pair b) { return a.second > b.second; });
+
+        write_results(conf["out_by_n"], sorted_words);
+
+        std::cout << "Sorting by words..." << std::endl;
+        std::copy(wordsVector.begin(), wordsVector.end(), std::back_inserter(sorted_words));
+        std::sort(wordsVector.begin(), wordsVector.end(), [](Pair a, Pair b) {
+            return boost::locale::comparator<char, boost::locale::collator_base::secondary>().operator()(a.first,
+                                                                                                         b.first);
+        });
+
+
+        write_results(conf["out_by_a"], wordsVector);
+
+
+        return 0;
+    }

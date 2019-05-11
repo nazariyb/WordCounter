@@ -31,7 +31,7 @@ std::stringstream &Reader::read_txt (std::string &address)
     return chunk;
 }
 
-std::stringstream &Reader::read_zip (std::string &address)
+std::stringstream &Reader::read_archive (std::string &address)
 {
     std::stringstream words_stream;
 
