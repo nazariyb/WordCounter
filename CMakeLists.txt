@@ -14,7 +14,7 @@ add_executable(lab4
     dependencies/work_stealing_queue.cpp dependencies/work_stealing_queue.h
     dependencies/join_threads.h
 #    ${DEPENDECIES}
-    )
+        src/read.cpp src/read.h)
 
 find_package(Threads REQUIRED)
 find_package(LibArchive REQUIRED)
