@@ -1,4 +1,4 @@
-infile   = /mnt/c/Users/3naza/Desktop/gutenberg
+infile   = ../war_and_peace
 out_by_a = res_alphabet.txt
 out_by_n = res_numbers.txt
 threads  = 3

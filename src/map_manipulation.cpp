@@ -7,7 +7,7 @@
 #include "main_config.h"
 #include "../dependencies/thread_safe_queue.h"
 
-void merge_two_maps (thread_safe_queue<WordMap> maps_queue)
+void merge_two_maps (thread_safe_queue<WordMap>& maps_queue)
 {
     while (true) {
         auto map_pair = maps_queue.double_pop();
@@ -28,7 +28,9 @@ void merge_two_maps (thread_safe_queue<WordMap> maps_queue)
         maps_queue.push(merged_map);
     }
 }
-void write_file(const std::string &filename, const std::vector<Pair> &words) {
+
+void write_file (const std::string &filename, const std::vector<Pair> &words)
+{
     std::ofstream outfile(filename);
     for (auto &word : words) {
         outfile << word.first;
@@ -39,7 +41,8 @@ void write_file(const std::string &filename, const std::vector<Pair> &words) {
 }
 
 
-void write_results(const std::string & outfile, std::vector<Pair> & sorted_numbers){
+void write_results (const std::string &outfile, std::vector<Pair> &sorted_numbers)
+{
     try {
         write_file(outfile, sorted_numbers);
     } catch (std::exception &ex) {
@@ -47,7 +50,7 @@ void write_results(const std::string & outfile, std::vector<Pair> & sorted_numbe
                   << outfile
                   << ". Try to complete work..."
                   << std::endl;
-        throw(std::invalid_argument("Error while saving results"));
+        throw (std::invalid_argument("Error while saving results"));
     }
 
 }
