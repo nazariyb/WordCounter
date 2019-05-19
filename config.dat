@@ -1,4 +1,5 @@
 infile   = ../war_and_peace
 out_by_a = res_alphabet.txt
 out_by_n = res_numbers.txt
-threads  = 3
+threads_for_indexing = 6
+threads_for_merging = 4

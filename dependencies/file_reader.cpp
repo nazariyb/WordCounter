@@ -1,12 +1,12 @@
 #include <fstream>
 #include <iostream>
-#include "read.h"
+#include "file_reader.h"
 #include <algorithm>
 #include <archive.h>
 #include <archive_entry.h>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
-#include "main_config.h"
+#include "../src/main_config.h"
 
 
 bool Reader::is_archive (const std::string &filename)
@@ -49,12 +49,12 @@ void Reader::read_archive (std::string &address, std::stringstream &ss)
                       << address
                       << std::endl;
             throw std::invalid_argument("Error while opening archive.");
-                    }
+        }
 
         // get entries of archive
         while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
             size_t size;
-            auto *buff = new char [sizeof(entry)];
+            auto *buff = new char[sizeof(entry)];
             for (;;) {
                 size = archive_read_data(a, buff, sizeof(entry));
                 if (size == 0) { break; }

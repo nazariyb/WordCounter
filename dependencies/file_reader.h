@@ -1,12 +1,13 @@
-#ifndef LAB4_READ_H
-#define LAB4_READ_H
+#ifndef LAB4_FILE_READER_H
+#define LAB4_FILE_READER_H
 
 #include <sstream>
 #include <vector>
 #include <map>
-#include "read.h"
+#include "file_reader.h"
 
-struct Reader{
+struct Reader
+    {
     static void read_txt (std::string &address, std::stringstream &ss);
 
     static void read_archive (std::string &address, std::stringstream &ss);
@@ -15,7 +16,7 @@ struct Reader{
 
     static bool is_archive (const std::string &f);
 
-};
+    };
 
 
-#endif //LAB4_READ_H
+#endif //LAB4_FILE_READER_H
