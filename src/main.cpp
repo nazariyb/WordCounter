@@ -62,30 +62,35 @@ std::map<std::string, StringVector> find_files_to_index (std::string &directory_
 void index_text (thread_safe_queue<std::stringstream> &stream_queue,
                  thread_safe_queue<WordMap> &maps_queue)
 {
+    std::string temp, text;
+    using namespace boost::locale::boundary;
+
     while (true) {
 
         auto file_stream = stream_queue.try_pop();
+        if (file_stream == nullptr) continue;
+        auto new_file_stream = std::move(*file_stream);
+        auto wMap = new WordMap;
 
-        WordMap wMap;
         // iterate through text
-        std::string temp;
-        while (getline(*file_stream, temp)) {
+        while (getline(new_file_stream, temp)) {
             // normalize encoding
-            std::string text = boost::locale::normalize(temp);
+            text = boost::locale::normalize(temp);
 
             // bound text by words
-            using namespace boost::locale::boundary;
             ssegment_index map(word, text.begin(), text.end());
             map.rule(word_any);
 
             // convert them to fold case and add to the vector
             for (ssegment_index::iterator it = map.begin(), e = map.end(); it != e; ++it) {
-                ++wMap[boost::locale::fold_case(it->str())];
+                ++(*wMap)[boost::locale::fold_case(it->str())];
             }
         }
-//        maps_queue.push(wMap);
-        if (wMap.empty())
+        maps_queue.push(*wMap);
+        if (wMap->empty()) {
+            stream_queue.push(std::move(*file_stream));
             return;
+        }
     }
 }
 
@@ -134,12 +139,13 @@ int main (int argc, char **argv)
     auto files_to_index = find_files_to_index(conf["infile"]);
     std::stringstream ss;
 
-    std::vector<std::thread> index_threads, merge_threads;
+    std::vector<std::thread> index_threads[6], merge_threads[4];
 
-    for (int i = 0; i < 6; ++i)
-        index_threads.emplace_back(index_text, std::ref(stream_queue), std::ref(maps_queue));
-    for (int i = 0; i < 2; ++i)
-        merge_threads.emplace_back(merge_two_maps, std::ref(maps_queue));
+    for (auto& thread: index_threads)
+        index_threads->emplace_back(index_text, std::ref(stream_queue), std::ref(maps_queue));
+    std::cout << "here";
+    for (auto& thread: merge_threads)
+        merge_threads->emplace_back(merge_two_maps, std::ref(maps_queue));
 
 
     for (auto &filepath: files_to_index["txt"]) {
