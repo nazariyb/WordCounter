@@ -1,5 +1,5 @@
-infile   = ../war_and_peace
-out_by_a = res_alphabet.txt
-out_by_n = res_numbers.txt
+infile   = /mnt/c/Users/3naza/Desktop/gutenberg/1/0/0
+out_by_a = ../res_alphabet.txt
+out_by_n = ../res_numbers.txt
 threads_for_indexing = 6
 threads_for_merging = 4

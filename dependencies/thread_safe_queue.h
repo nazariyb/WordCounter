@@ -49,7 +49,6 @@ public:
         std::unique_lock<std::mutex> lk(mut);
         data_cond.wait(lk, [this] { return !data_queue.empty(); });
         std::shared_ptr<T> res = data_queue.front();
-//                std::make_shared<T>(std::move(data_queue.front())));
         data_queue.pop();
         return res;
     }
@@ -72,7 +71,6 @@ public:
         if (data_queue.empty())
             return std::shared_ptr<T>();
         std::shared_ptr<T> res = data_queue.front();
-//                std::make_shared<T>(std::move(data_queue.front())));
         data_queue.pop();
         return res;
     }
@@ -81,13 +79,13 @@ public:
     std::pair<T, T> double_pop ()
     {
         std::unique_lock<std::mutex> lk(mut);
-        data_cond.wait(lk, [this] { return !data_queue.empty(); });
-        auto first = data_queue.front();
+        data_cond.wait(lk, [this] { return data_queue.size() >= 2; });
+        auto first = std::move(*data_queue.front());
         data_queue.pop();
-        auto second = data_queue.front();
+        auto second = std::move(*data_queue.front());
         data_queue.pop();
 
-        return std::make_pair(*first, *second);
+        return std::make_pair(first, second);
     }
 
 

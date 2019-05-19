@@ -8,13 +8,9 @@ file (GLOB DEPENDECIES dependencies/*.*)
 
 add_executable(lab4
     src/main.cpp src/conf_reader.cpp src/conf_reader.h
-    dependencies/function_wrapper.cpp dependencies/function_wrapper.h
-    dependencies/thread_pool.cpp dependencies/thread_pool.h
     dependencies/thread_safe_queue.cpp dependencies/thread_safe_queue.h
-    dependencies/work_stealing_queue.cpp dependencies/work_stealing_queue.h
-    dependencies/join_threads.h
 #    ${DEPENDECIES}
-        src/read.cpp src/read.h src/main_config.h src/map_manipulation.cpp src/map_manipulation.h)
+        dependencies/file_reader.cpp dependencies/file_reader.h src/main_config.h src/map_manipulation.cpp src/map_manipulation.h)
 
 find_package(Threads REQUIRED)
 find_package(LibArchive REQUIRED)

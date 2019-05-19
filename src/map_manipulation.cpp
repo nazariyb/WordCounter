@@ -7,16 +7,19 @@
 #include "main_config.h"
 #include "../dependencies/thread_safe_queue.h"
 
-void merge_two_maps (thread_safe_queue<WordMap>& maps_queue)
+void merge_two_maps (thread_safe_queue<WordMap> &maps_queue)
 {
+    std::pair<WordMap, WordMap> map_pair;
     while (true) {
-        auto map_pair = maps_queue.double_pop();
+        map_pair = maps_queue.double_pop();
         if (map_pair.first.empty() || map_pair.second.empty()) {
             if (maps_queue.empty()) {
-                maps_queue.double_push(map_pair.first, map_pair.second);
+                (map_pair.second.empty()) ? maps_queue.double_push(map_pair.first, map_pair.second)
+                                          : maps_queue.double_push(map_pair.second, map_pair.first);
                 return;
             } else {
-                maps_queue.double_push(map_pair.first, map_pair.second);
+                (map_pair.second.empty()) ? maps_queue.double_push(map_pair.first, map_pair.second)
+                                          : maps_queue.double_push(map_pair.second, map_pair.first);
                 continue;
             }
         }

@@ -28,6 +28,85 @@ void Reader::read_txt (std::string &address, std::stringstream &ss)
 {
     std::ifstream f(address);
     ss << f.rdbuf();
+    f.close();
+}
+
+int Reader::copy_data (struct archive *ar, struct archive *aw)
+{
+    int r;
+    const void *buff;
+    size_t size;
+    la_int64_t offset;
+
+    for (;;) {
+        r = archive_read_data_block(ar, &buff, &size, &offset);
+        if (r == ARCHIVE_EOF)
+            return (ARCHIVE_OK);
+        if (r < ARCHIVE_OK)
+            return (r);
+        r = archive_write_data_block(aw, buff, size, offset);
+        if (r < ARCHIVE_OK) {
+            fprintf(stderr, "%s\n", archive_error_string(aw));
+            return (r);
+        }
+    }
+}
+
+
+void Reader::extract (std::string &address)
+{
+    struct archive *a;
+    struct archive *ext;
+    struct archive_entry *entry;
+    int flags;
+    int r;
+
+    /* Select which attributes we want to restore. */
+    flags = ARCHIVE_EXTRACT_TIME;
+    flags |= ARCHIVE_EXTRACT_PERM;
+    flags |= ARCHIVE_EXTRACT_ACL;
+    flags |= ARCHIVE_EXTRACT_FFLAGS;
+
+    a = archive_read_new();
+    archive_read_support_format_all(a);
+    archive_read_support_compression_all(a);
+    ext = archive_write_disk_new();
+    archive_write_disk_set_options(ext, flags);
+    archive_write_disk_set_standard_lookup(ext);
+    if ((r = archive_read_open_filename(a, address.c_str(), 10240)))
+        exit(1);
+    for (;;) {
+        r = archive_read_next_header(a, &entry);
+        if (r == ARCHIVE_EOF)
+            break;
+        if (r < ARCHIVE_OK)
+            fprintf(stderr, "%s\n", archive_error_string(a));
+        if (r < ARCHIVE_WARN)
+            exit(1);
+        const char *currentFile = archive_entry_pathname(entry);
+        if (!is_txt(currentFile)) continue;
+        const std::string fullOutputPath = std::string{"../temp/"} + currentFile;
+        archive_entry_set_pathname(entry, fullOutputPath.c_str());
+        r = archive_write_header(ext, entry);
+        if (r < ARCHIVE_OK)
+            fprintf(stderr, "%s\n", archive_error_string(ext));
+        else if (archive_entry_size(entry) > 0) {
+            r = copy_data(a, ext);
+            if (r < ARCHIVE_OK)
+                fprintf(stderr, "%s\n", archive_error_string(ext));
+            if (r < ARCHIVE_WARN)
+                exit(1);
+        }
+        r = archive_write_finish_entry(ext);
+        if (r < ARCHIVE_OK)
+            fprintf(stderr, "%s\n", archive_error_string(ext));
+        if (r < ARCHIVE_WARN)
+            exit(1);
+    }
+    archive_read_close(a);
+    archive_read_free(a);
+    archive_write_close(ext);
+    archive_write_free(ext);
 }
 
 void Reader::read_archive (std::string &address, std::stringstream &ss)
@@ -53,6 +132,12 @@ void Reader::read_archive (std::string &address, std::stringstream &ss)
 
         // get entries of archive
         while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
+            const char *currentFile = archive_entry_pathname(entry);
+            //std::cout << currentFile << std::endl;
+            const std::string fullOutputPath =
+                    std::string{"/mnt/c/Users/3naza/OneDrive/Documents/acs/labs/lab4/temp/"} + currentFile;
+            std::cout << fullOutputPath << std::endl;
+            archive_entry_set_pathname(entry, fullOutputPath.c_str());
             size_t size;
             auto *buff = new char[sizeof(entry)];
             for (;;) {
@@ -71,6 +156,9 @@ void Reader::read_archive (std::string &address, std::stringstream &ss)
                       << std::endl;
             throw std::invalid_argument("Error while closing archive");
         }
+        //        std::string new_address;
+        //        std::copy(address.begin(), address.rfind('/'), new_address.begin());
+        //        std::ofstream temp_file{address};
     }
 
 }

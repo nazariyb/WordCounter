@@ -6,9 +6,9 @@
 #include <vector>
 
 enum Error
-{
+    {
     OPEN_FILE_ERROR = 2, READ_FILE_ERROR = 3, WRITE_FILE_ERROR = 4, READ_ARCHIVE_ERROR = 5
-};
+    };
 
 using StringVector = std::vector<std::string>;
 using Pair = std::pair<std::string, int>;
