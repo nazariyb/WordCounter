@@ -16,12 +16,11 @@ struct Reader
 
     static bool is_archive (const std::string &f);
 
-    static void extract (std::string &address);
+    static void extract (std::string &from, std::string &to);
 
-    static int copy_data(struct archive *ar, struct archive *aw);
+    static int copy_data (struct archive *ar, struct archive *aw);
 
     };
-
 
 
 #endif //LAB4_FILE_READER_H

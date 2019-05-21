@@ -41,17 +41,22 @@ StringVector find_files_to_index (std::string &directory_name)
     WordMap wMap;
     // iterate through text
     StringVector txt;
+    std::string extract_to{"../temp/"};
     for (boost::filesystem::recursive_directory_iterator end, dir(directory_name);
          dir != end; ++dir) {
         std::string pathname{(*dir).path().string()};
 
-        if (Reader::is_txt(pathname))
+        if (Reader::is_txt(pathname)) {
             txt.push_back(pathname);
+            }
         if (Reader::is_archive(pathname)) {
-            Reader::extract(pathname);
+            try {
+                Reader::extract(pathname, extract_to);
+            } catch (...)
+            {}
         }
     }
-
+    
     for (boost::filesystem::recursive_directory_iterator end, dir("../temp");
          dir != end; ++dir) {
         std::string pathname{(*dir).path().string()};
@@ -99,6 +104,7 @@ void index_text (thread_safe_queue<std::stringstream> &stream_queue,
             }
             return;
         }
+        if (!wMap->empty())
         maps_queue.push(*wMap);
     }
 }

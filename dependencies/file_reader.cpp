@@ -53,7 +53,7 @@ int Reader::copy_data (struct archive *ar, struct archive *aw)
 }
 
 
-void Reader::extract (std::string &address)
+void Reader::extract (std::string &from, std::string &to)
 {
     struct archive *a;
     struct archive *ext;
@@ -73,35 +73,36 @@ void Reader::extract (std::string &address)
     ext = archive_write_disk_new();
     archive_write_disk_set_options(ext, flags);
     archive_write_disk_set_standard_lookup(ext);
-    if ((r = archive_read_open_filename(a, address.c_str(), 10240)))
-        exit(1);
+    if ((r = archive_read_open_filename(a, from.c_str(), 10240)))
+        throw std::runtime_error{"can't open archive"};
     for (;;) {
         r = archive_read_next_header(a, &entry);
         if (r == ARCHIVE_EOF)
             break;
         if (r < ARCHIVE_OK)
-            fprintf(stderr, "%s\n", archive_error_string(a));
+            std::cerr << archive_error_string(a) << std::endl;
         if (r < ARCHIVE_WARN)
-            exit(1);
+            throw std::runtime_error{"can't open archive"};
+
         const char *currentFile = archive_entry_pathname(entry);
         if (!is_txt(currentFile)) continue;
-        const std::string fullOutputPath = std::string{"../temp/"} + currentFile;
+        const std::string fullOutputPath = to + currentFile;
         archive_entry_set_pathname(entry, fullOutputPath.c_str());
         r = archive_write_header(ext, entry);
         if (r < ARCHIVE_OK)
-            fprintf(stderr, "%s\n", archive_error_string(ext));
+            std::cerr << archive_error_string(ext) << std::endl;
         else if (archive_entry_size(entry) > 0) {
             r = copy_data(a, ext);
             if (r < ARCHIVE_OK)
-                fprintf(stderr, "%s\n", archive_error_string(ext));
+                std::cerr << archive_error_string(ext) << std::endl;
             if (r < ARCHIVE_WARN)
-                exit(1);
+                throw std::runtime_error{"can't open archive"};
         }
         r = archive_write_finish_entry(ext);
         if (r < ARCHIVE_OK)
-            fprintf(stderr, "%s\n", archive_error_string(ext));
+            std::cerr << archive_error_string(ext) << std::endl;
         if (r < ARCHIVE_WARN)
-            exit(1);
+            throw std::runtime_error{"can't open archive"};
     }
     archive_read_close(a);
     archive_read_free(a);

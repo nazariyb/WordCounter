@@ -14,6 +14,7 @@ void merge_two_maps (thread_safe_queue<WordMap> &maps_queue)
         map_pair = maps_queue.double_pop();
         if (map_pair.first.empty() || map_pair.second.empty()) {
             if (maps_queue.empty()) {
+            // if (map_pair.first.empty() && map_pair.second.empty()) {maps_queue.push(map_pair.first); continue;}
                 (map_pair.second.empty()) ? maps_queue.double_push(map_pair.first, map_pair.second)
                                           : maps_queue.double_push(map_pair.second, map_pair.first);
                 return;
@@ -24,11 +25,10 @@ void merge_two_maps (thread_safe_queue<WordMap> &maps_queue)
             }
         }
 
-        WordMap merged_map{map_pair.first};
         for (auto &word: map_pair.second) {
-            merged_map[word.first] += word.second;
+            map_pair.first[word.first] += word.second;
         }
-        maps_queue.push(merged_map);
+        maps_queue.push(map_pair.first);
     }
 }
 
