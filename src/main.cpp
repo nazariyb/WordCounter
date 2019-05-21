@@ -56,7 +56,7 @@ StringVector find_files_to_index (std::string &directory_name)
             {}
         }
     }
-    
+
     for (boost::filesystem::recursive_directory_iterator end, dir("../temp");
          dir != end; ++dir) {
         std::string pathname{(*dir).path().string()};
@@ -112,6 +112,7 @@ void index_text (thread_safe_queue<std::stringstream> &stream_queue,
 
 int main (int argc, char **argv)
 {
+
     // Create system default locale
     boost::locale::generator gen;
     std::locale loc = gen("");
@@ -146,6 +147,12 @@ int main (int argc, char **argv)
 
     thread_safe_queue<std::stringstream> stream_queue{};
     thread_safe_queue<WordMap> maps_queue{};
+
+    if ( !boost::filesystem::exists( "../temp" ) )
+    {
+        boost::filesystem::path dstFolder = "../temp";
+        boost::filesystem::create_directory(dstFolder);
+    }
 
 
     std::cout << "Exploring " << conf["infile"] << "..." << std::endl;
