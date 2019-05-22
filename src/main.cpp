@@ -14,6 +14,7 @@
 #include <cmath>
 #include <mutex>
 #include <string>
+#include <boost/asio.hpp>
 
 #include "main_config.h"
 #include "conf_reader.h"
@@ -42,6 +43,13 @@ StringVector find_files_to_index (std::string &directory_name)
     // iterate through text
     StringVector txt;
     std::string extract_to{"../temp/"};
+
+    if ( !boost::filesystem::exists( extract_to ) )
+    {
+        boost::filesystem::path dstFolder = extract_to;
+        boost::filesystem::create_directory(dstFolder);
+    }
+
     for (boost::filesystem::recursive_directory_iterator end, dir(directory_name);
          dir != end; ++dir) {
         std::string pathname{(*dir).path().string()};
