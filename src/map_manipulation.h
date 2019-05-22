@@ -10,5 +10,7 @@ void write_results (const std::string &outfile, std::vector<Pair> &sorted_number
 
 void merge_two_maps (thread_safe_queue<WordMap> &maps_queue);
 
+void merge_2_maps (WordMap &a, const WordMap &b);
+
 
 #endif //LAB4_MAP_MANIPULATION_H
