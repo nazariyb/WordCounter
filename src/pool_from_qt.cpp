@@ -15,12 +15,14 @@
 #include <mutex>
 #include <string>
 #include <boost/asio.hpp>
+#include <qt5/QtCore/QThreadPool>
 
 #include "main_config.h"
 #include "conf_reader.h"
 #include "../dependencies/file_reader.h"
 #include "../dependencies/thread_safe_queue.h"
 #include "map_manipulation.h"
+#include "Task.h"
 
 inline std::chrono::steady_clock::time_point get_current_time_fenced ()
 {
@@ -43,25 +45,17 @@ StringVector find_files_to_index (std::string &directory_name)
     // iterate through text
     StringVector txt;
     std::string extract_to{"../temp/"};
-
-    if ( !boost::filesystem::exists( extract_to ) )
-    {
-        boost::filesystem::path dstFolder = extract_to;
-        boost::filesystem::create_directory(dstFolder);
-    }
-
     for (boost::filesystem::recursive_directory_iterator end, dir(directory_name);
          dir != end; ++dir) {
         std::string pathname{(*dir).path().string()};
 
         if (Reader::is_txt(pathname)) {
             txt.push_back(pathname);
-            }
+        }
         if (Reader::is_archive(pathname)) {
             try {
                 Reader::extract(pathname, extract_to);
-            } catch (...)
-            {}
+            } catch (...) { }
         }
     }
 
@@ -76,8 +70,8 @@ StringVector find_files_to_index (std::string &directory_name)
 
 void index_text (thread_safe_queue<std::stringstream> &stream_queue,
                  thread_safe_queue<WordMap> &maps_queue,
-                 std::atomic_int& threads_finished,
-                 std::atomic_int& threads_to_be_finished)
+                 std::atomic_int &threads_finished,
+                 std::atomic_int &threads_to_be_finished)
 {
     std::string temp, text;
     using namespace boost::locale::boundary;
@@ -113,14 +107,13 @@ void index_text (thread_safe_queue<std::stringstream> &stream_queue,
             return;
         }
         if (!wMap->empty())
-        maps_queue.push(*wMap);
+            maps_queue.push(*wMap);
     }
 }
 
 
 int main (int argc, char **argv)
 {
-
     // Create system default locale
     boost::locale::generator gen;
     std::locale loc = gen("");
@@ -156,35 +149,16 @@ int main (int argc, char **argv)
     thread_safe_queue<std::stringstream> stream_queue{};
     thread_safe_queue<WordMap> maps_queue{};
 
-    if ( !boost::filesystem::exists( "../temp" ) )
-    {
-        boost::filesystem::path dstFolder = "../temp";
-        boost::filesystem::create_directory(dstFolder);
-    }
-
 
     std::cout << "Exploring " << conf["infile"] << "..." << std::endl;
     auto files_to_index = find_files_to_index(conf["infile"]);
 
-    int threads_for_indexing{std::stoi(conf["threads_for_indexing"])};
-    int threads_for_merging{std::stoi(conf["threads_for_merging"])};
-
-    std::vector<std::thread> indexing_threads[threads_for_indexing];
-    std::vector<std::thread> merging_threads[threads_for_merging];
-
-    std::atomic_int threads_finished{0}, thread_to_be_finished{threads_for_indexing};
-
-    for (int i = 0; i < threads_for_indexing; ++i)
-        indexing_threads->emplace_back(index_text, std::ref(stream_queue), std::ref(maps_queue),
-        std::ref(threads_finished), std::ref(thread_to_be_finished));
-
-    for (int ind = 0; ind < threads_for_merging; ++ind) {
-        merging_threads->emplace_back(merge_two_maps, std::ref(maps_queue));
-    }
-
     std::stringstream ss;
+    QThreadPool pool{};
 
     std::cout << "Start processing data..." << std::endl;
+
+    std::atomic_int threads_finished{0}, threads_to_be_finished{0};
 
     auto start_working = get_current_time_fenced();
 
@@ -192,6 +166,10 @@ int main (int argc, char **argv)
         try {
             Reader::read_txt(filepath, ss);
             stream_queue.push(std::move(ss));
+            Task<std::function<void>> t{[std::ref(stream_queue), std::ref(maps_queue),
+            std::ref(threads_finished), std::ref(threads_to_be_finished)
+            ] () { index_text(); }};
+            pool.start(t, 1);
         }
         catch (std::exception &e) {
             std::cerr << e.what() << std::endl;
@@ -201,13 +179,6 @@ int main (int argc, char **argv)
     std::cout << "Data read" << std::endl;
     std::stringstream poison_stream{};
     stream_queue.push(std::move(poison_stream));
-
-    for (auto &thread: *indexing_threads) {
-        thread.join();
-    }
-    for (auto &thread: *merging_threads) {
-        thread.join();
-    }
 
     auto wordsMap = *maps_queue.try_pop();
     std::vector<Pair> wordsVector;

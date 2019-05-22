@@ -14,7 +14,7 @@ void merge_two_maps (thread_safe_queue<WordMap> &maps_queue)
         map_pair = maps_queue.double_pop();
         if (map_pair.first.empty() || map_pair.second.empty()) {
             if (maps_queue.empty()) {
-            // if (map_pair.first.empty() && map_pair.second.empty()) {maps_queue.push(map_pair.first); continue;}
+                // if (map_pair.first.empty() && map_pair.second.empty()) {maps_queue.push(map_pair.first); continue;}
                 (map_pair.second.empty()) ? maps_queue.double_push(map_pair.first, map_pair.second)
                                           : maps_queue.double_push(map_pair.second, map_pair.first);
                 return;
@@ -31,6 +31,7 @@ void merge_two_maps (thread_safe_queue<WordMap> &maps_queue)
         maps_queue.push(map_pair.first);
     }
 }
+
 
 void write_file (const std::string &filename, const std::vector<Pair> &words)
 {
