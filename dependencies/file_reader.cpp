@@ -33,11 +33,21 @@ void Reader::read_txt (std::string &address, std::stringstream &ss)
 
 void Reader::read_txt (std::string &address, std::string &s)
 {
-    std::ifstream f(address);
-    std::stringstream ss;
-    ss << f.rdbuf();
-    s = std::move(ss.str());
-    f.close();
+//    std::ifstream file(address);
+//    auto const start_pos = file.tellg();
+//    file.ignore(std::numeric_limits<std::streamsize>::max());
+//    auto const char_count = file.gcount();
+//    file.seekg(start_pos);
+//    auto text = std::vector<char>((unsigned long) char_count);
+//    (file).read(&text[0], text.size());
+//    file.close();
+//    s = std::string(text.begin(), text.end());
+
+     std::ifstream f(address);
+     std::stringstream ss;
+     ss << f.rdbuf();
+     s = std::move(ss.str());
+     f.close();
 }
 
 int Reader::copy_data (struct archive *ar, struct archive *aw)

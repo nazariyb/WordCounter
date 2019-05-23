@@ -5,16 +5,18 @@
 #include <atomic>
 
 #include "../dependencies/thread_safe_queue.h"
+#include "../dependencies/function_wrapper.h"
 #include "main_config.h"
 
-template<typename F>
 class Task : public QRunnable
     {
-    F func;
+    public:
+    function_wrapper func;
 
-    explicit Task (F func_) : QRunnable(), func(func_) { }
+    explicit Task (function_wrapper& func_) : QRunnable() { func = std::move(func_); }
 
     void run () override { func(); };
+
     };
 
 

@@ -3,6 +3,7 @@
 
 #include <string>
 #include <atomic>
+
 #include "main_config.h"
 #include "../dependencies/thread_safe_queue.h"
 

@@ -10,6 +10,8 @@ file(GLOB DEPENDECIES dependencies/*.*)
 
 set(OWN_QUEUE own_queue)
 set(QT_POOL qt_pool)
+set(QT_MAP_REDUCE qt_map_reduce)
+
 add_executable(${OWN_QUEUE}
         src/main.cpp src/conf_reader.cpp src/conf_reader.h
         dependencies/thread_safe_queue.cpp dependencies/thread_safe_queue.h
@@ -35,8 +37,8 @@ add_executable(${QT_POOL}
         dependencies/thread_safe_queue.cpp dependencies/thread_safe_queue.h
         dependencies/file_reader.cpp dependencies/file_reader.h
         src/main_config.h
-        src/map_manipulation.cpp src/map_manipulation.h src/pool_from_qt.cpp
-        )
+        src/map_manipulation.cpp src/map_manipulation.h
+        dependencies/function_wrapper.cpp dependencies/function_wrapper.h)
 
 find_package(Qt5Core)
 find_package(Qt5Concurrent)
@@ -47,7 +49,6 @@ include_directories(${Qt5Widgets_INCLUDE_DIRS})
 
 get_target_property(QtCore_location Qt5::Core LOCATION)
 
-#find_package(Qt5 COMPONENTS Core Concurrent REQUIRED)
 target_link_libraries(${QT_POOL} ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(${QT_POOL} ${LibArchive_LIBRARIES})
 target_link_libraries(${QT_POOL}
@@ -59,4 +60,20 @@ target_link_libraries(${QT_POOL}
         Qt5::Widgets
         )
 
+add_executable(${QT_MAP_REDUCE}
+        src/map_reduce.cpp src/conf_reader.cpp src/conf_reader.h
+        dependencies/file_reader.cpp dependencies/file_reader.h
+        src/main_config.h
+        src/map_manipulation.cpp src/map_manipulation.h
+        )
 
+target_link_libraries(${QT_MAP_REDUCE} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(${QT_MAP_REDUCE} ${LibArchive_LIBRARIES})
+target_link_libraries(${QT_MAP_REDUCE}
+        ${Boost_FILESYSTEM_LIBRARY}
+        ${Boost_SYSTEM_LIBRARY}
+        ${Boost_LOCALE_LIBRARY}
+        Qt5::Core
+        Qt5::Concurrent
+        Qt5::Widgets
+        )

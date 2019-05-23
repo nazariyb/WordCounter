@@ -43,7 +43,7 @@ StringVector find_files_to_index (std::string &directory_name)
     // iterate through text
     StringVector txt;
     std::string extract_to{"../temp/"};
-
+    int huyovyj_archive{0};
     if ( !boost::filesystem::exists( extract_to ) )
     {
         boost::filesystem::path dstFolder = extract_to;
@@ -61,11 +61,14 @@ StringVector find_files_to_index (std::string &directory_name)
             try {
                 Reader::extract(pathname, extract_to);
             } catch (...)
-            {}
+            {
+                ++huyovyj_archive;
+            }
         }
     }
+    std::cout << "huyovyj archive: " << huyovyj_archive << std::endl;
 
-    for (boost::filesystem::recursive_directory_iterator end, dir("../temp");
+    for (boost::filesystem::recursive_directory_iterator end, dir(extract_to);
          dir != end; ++dir) {
         std::string pathname{(*dir).path().string()};
         if (Reader::is_txt(pathname))
@@ -155,13 +158,6 @@ int main (int argc, char **argv)
 
     thread_safe_queue<std::stringstream> stream_queue{};
     thread_safe_queue<WordMap> maps_queue{};
-
-    if ( !boost::filesystem::exists( "../temp" ) )
-    {
-        boost::filesystem::path dstFolder = "../temp";
-        boost::filesystem::create_directory(dstFolder);
-    }
-
 
     std::cout << "Exploring " << conf["infile"] << "..." << std::endl;
     auto files_to_index = find_files_to_index(conf["infile"]);
