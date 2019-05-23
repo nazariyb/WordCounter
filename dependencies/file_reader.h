@@ -9,6 +9,7 @@
 struct Reader
     {
     static void read_txt (std::string &address, std::stringstream &ss);
+    static void read_txt (std::string &address, std::string &s);
 
     static void read_archive (std::string &address, std::stringstream &ss);
 

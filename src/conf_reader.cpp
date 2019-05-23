@@ -4,6 +4,7 @@
 #include <map>
 #include <fstream>
 #include "conf_reader.h"
+#include "boost/asio/thread_pool.hpp"
 
 std::vector<std::string> split_line (const std::string &line, const char delimiter)
 {

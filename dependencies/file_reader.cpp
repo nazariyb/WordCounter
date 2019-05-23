@@ -31,6 +31,15 @@ void Reader::read_txt (std::string &address, std::stringstream &ss)
     f.close();
 }
 
+void Reader::read_txt (std::string &address, std::string &s)
+{
+    std::ifstream f(address);
+    std::stringstream ss;
+    ss << f.rdbuf();
+    s = std::move(ss.str());
+    f.close();
+}
+
 int Reader::copy_data (struct archive *ar, struct archive *aw)
 {
     int r;

@@ -7,8 +7,7 @@
 #include "main_config.h"
 #include "../dependencies/thread_safe_queue.h"
 
-void merge_two_maps (thread_safe_queue<WordMap> &maps_queue)
-{
+void merge_two_maps(thread_safe_queue<WordMap> &maps_queue) {
     std::pair<WordMap, WordMap> map_pair;
     while (true) {
         map_pair = maps_queue.double_pop();
@@ -33,8 +32,16 @@ void merge_two_maps (thread_safe_queue<WordMap> &maps_queue)
 }
 
 
-void write_file (const std::string &filename, const std::vector<Pair> &words)
-{
+void merge_2_maps(WordMap &a, const WordMap &b) {
+
+    for (auto &word: b) {
+        a[word.first] += word.second;
+    }
+
+}
+
+
+void write_file(const std::string &filename, const std::vector<Pair> &words) {
     std::ofstream outfile(filename);
     for (auto &word : words) {
         outfile << word.first;
@@ -45,8 +52,7 @@ void write_file (const std::string &filename, const std::vector<Pair> &words)
 }
 
 
-void write_results (const std::string &outfile, std::vector<Pair> &sorted_numbers)
-{
+void write_results(const std::string &outfile, std::vector<Pair> &sorted_numbers) {
     try {
         write_file(outfile, sorted_numbers);
     } catch (std::exception &ex) {

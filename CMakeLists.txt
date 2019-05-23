@@ -35,7 +35,7 @@ add_executable(${QT_POOL}
         dependencies/thread_safe_queue.cpp dependencies/thread_safe_queue.h
         dependencies/file_reader.cpp dependencies/file_reader.h
         src/main_config.h
-        src/map_manipulation.cpp src/map_manipulation.h
+        src/map_manipulation.cpp src/map_manipulation.h src/pool_from_qt.cpp
         )
 
 find_package(Qt5Core)
@@ -58,3 +58,5 @@ target_link_libraries(${QT_POOL}
         Qt5::Concurrent
         Qt5::Widgets
         )
+
+
